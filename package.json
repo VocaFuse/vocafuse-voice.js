@@ -1,6 +1,6 @@
 {
   "name": "vocafuse",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "VocaFuse Frontend SDK for voice recording and upload",
   "type": "module",
   "main": "./dist/index.umd.js",
