@@ -36,12 +36,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/VocaFuse/Speech-SDK-Web.git"
+    "url": "git+https://github.com/VocaFuse/vocafuse-voice.js.git"
   },
   "bugs": {
-    "url": "https://github.com/VocaFuse/Speech-SDK-Web/issues"
+    "url": "https://github.com/VocaFuse/vocafuse-voice.js/issues"
   },
-  "homepage": "https://github.com/VocaFuse/Speech-SDK-Web#readme",
+  "homepage": "https://github.com/VocaFuse/vocafuse-voice.js#readme",
   "author": "VocaFuse",
   "license": "MIT",
   "devDependencies": {
