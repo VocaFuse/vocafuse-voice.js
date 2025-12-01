@@ -1,4 +1,4 @@
-# VocaFuse Voice SDK
+# VocaFuse Voice Recording SDK
 
 Add cross-browser voice recording to your app in 5 minutes. Handles recording, transcription, and storage.
 

@@ -88,6 +88,10 @@ export class VoiceRecorder {
       this.setState('uploading');
       const result = await this.uploader.upload(this.recordingResult);
       this.setState('uploaded');
+      
+      // Reset to idle state for next recording
+      this.reset();
+      
       return result;
     }
     return this.recordingResult;
@@ -111,6 +115,12 @@ export class VoiceRecorder {
 
   destroy(): void {
     this.audioRecorder.cancel();
+  }
+
+  private reset(): void {
+    this._duration = 0;
+    this.recordingResult = null;
+    this.setState('idle');
   }
 
   private setState(newState: RecorderState): void {
