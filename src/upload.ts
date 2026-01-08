@@ -32,7 +32,7 @@ export interface UploadRequest {
 }
 
 export interface PresignedUrlResponse {
-  voicenote_id: string;
+  recording_id: string;
   upload_type: 'single' | 'multipart';
   presigned_url?: string;
   s3_key: string;
@@ -53,7 +53,7 @@ export interface PresignedUrlResponse {
 }
 
 export interface UploadResult {
-  voicenote_id: string;
+  recording_id: string;
   upload_type: 'single' | 'multipart';
   processing_strategy: string;
   client_processed: boolean;
@@ -102,7 +102,7 @@ export class VocaFuseUploader {
       this.notifyProgress({ loaded: 100, total: 100, percentage: 100, phase: 'completing' });
 
       const result: UploadResult = {
-        voicenote_id: presignedResponse.voicenote_id,
+        recording_id: presignedResponse.recording_id,
         upload_type: presignedResponse.upload_type,
         processing_strategy: presignedResponse.processing_strategy,
         client_processed: presignedResponse.client_processed,

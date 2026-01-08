@@ -112,6 +112,10 @@ export class TokenManager {
 
   private async fetchTokenData(): Promise<void> {
     try {
+      // NOTE: The 'scopes' field in the request is not used by the token endpoint.
+      // Scopes are controlled server-side by the Pre-Token Generation Lambda and are
+      // hardcoded to: ['voice-api.upload_recording', 'voice-api.read_recording']
+      // This field is kept for backwards compatibility but has no effect.
       const requestBody = {
         scopes: ['voice-api.upload']
       };
@@ -139,7 +143,8 @@ export class TokenManager {
             token_type: tokenData.data.token_type || 'Bearer',
             expires_in: tokenData.data.expires_in || 3600,
             tenant_id: tokenData.data.tenant_id || '',
-            scopes: tokenData.data.scopes || ['voice-api.upload']
+            // Server returns actual scopes: ['voice-api.upload_recording', 'voice-api.read_recording']
+            scopes: tokenData.data.scopes || ['voice-api.upload_recording', 'voice-api.read_recording']
           },
           expiresAt: Date.now() + (tokenData.data.expires_in || 3600) * 1000,
           fetchedAt: Date.now()
