@@ -5,16 +5,16 @@
  * duration limits, and browser compatibility handling.
  */
 
-import { VoicenoteError, ErrorCode, wrapUnknownError } from './errors.js';
+import { RecordingError, ErrorCode, wrapUnknownError } from './errors.js';
 
 export interface RecorderConfig {
-  maxDuration?: number; // Maximum voicenote duration in seconds (default: 60)
+  maxDuration?: number; // Maximum recording duration in seconds (default: 60)
   audioBitsPerSecond?: number; // Audio bitrate (optional)
   onProgress?: (duration: number) => void; // Progress callback
   onDataAvailable?: (chunk: Blob) => void; // Data chunk callback
 }
 
-export interface VoicenoteResult {
+export interface RecordingResult {
   blob: Blob;
   mimeType: string;
   duration: number;
@@ -24,7 +24,7 @@ export interface VoicenoteResult {
 
 export enum RecorderState {
   INACTIVE = 'inactive',
-  RECORDING = 'voicenote',
+  RECORDING = 'recording',
   PAUSED = 'paused'
 }
 
@@ -54,7 +54,7 @@ export class AudioRecorder {
     this.supportedMimeType = this.detectSupportedMimeType();
     
     if (!this.supportedMimeType) {
-      throw new VoicenoteError(
+      throw new RecordingError(
         ErrorCode.RECORDING_NOT_SUPPORTED,
         'MediaRecorder is not supported in this browser or no compatible audio formats found'
       );
@@ -62,7 +62,7 @@ export class AudioRecorder {
   }
 
   /**
-   * Get the current voicenote state
+   * Get the current recording state
    */
   get state(): RecorderState {
     if (!this.mediaRecorder) return RecorderState.INACTIVE;
@@ -77,7 +77,7 @@ export class AudioRecorder {
   }
 
   /**
-   * Get current voicenote duration in seconds
+   * Get current recording duration in seconds
    */
   get currentDuration(): number {
     if (this.state === RecorderState.INACTIVE) return 0;
@@ -93,14 +93,14 @@ export class AudioRecorder {
   }
 
   /**
-   * Request microphone permission and start voicenote
+   * Request microphone permission and start recording
    */
   async start(): Promise<void> {
     try {
       if (this.state !== RecorderState.INACTIVE) {
-        throw new VoicenoteError(
+        throw new RecordingError(
           ErrorCode.RECORDING_FAILED,
-          `Cannot start voicenote: current state is ${this.state}`
+          `Cannot start recording: current state is ${this.state}`
         );
       }
 
@@ -116,12 +116,12 @@ export class AudioRecorder {
       // Set up event listeners
       this.setupEventListeners();
 
-      // Clear previous voicenote data
+      // Clear previous recording data
       this.chunks = [];
       this.startTime = Date.now();
       this.pausedTime = 0;
 
-      // Start voicenote
+      // Start recording
       this.mediaRecorder.start(1000); // Collect data every 1 second
 
       // Start progress timer
@@ -130,28 +130,28 @@ export class AudioRecorder {
     } catch (error) {
       await this.cleanup();
       
-      if (error instanceof VoicenoteError) {
+      if (error instanceof RecordingError) {
         throw error;
       }
       
       // Handle specific browser errors
       if (error instanceof Error) {
         if (error.name === 'NotAllowedError') {
-          throw new VoicenoteError(
+          throw new RecordingError(
             ErrorCode.MICROPHONE_ACCESS_DENIED,
             'Microphone access was denied by the user',
             error
           );
         }
         if (error.name === 'NotFoundError') {
-          throw new VoicenoteError(
+          throw new RecordingError(
             ErrorCode.RECORDING_NOT_SUPPORTED,
             'No microphone found on this device',
             error
           );
         }
         if (error.name === 'NotSupportedError') {
-          throw new VoicenoteError(
+          throw new RecordingError(
             ErrorCode.RECORDING_NOT_SUPPORTED,
             'MediaRecorder is not supported in this browser',
             error
@@ -159,18 +159,18 @@ export class AudioRecorder {
         }
       }
       
-      throw wrapUnknownError(error, { operation: 'start voicenote' });
+      throw wrapUnknownError(error, { operation: 'start recording' });
     }
   }
 
   /**
-   * Pause the current voicenote
+   * Pause the current recording
    */
   pause(): void {
     if (this.state !== RecorderState.RECORDING) {
-      throw new VoicenoteError(
+      throw new RecordingError(
         ErrorCode.RECORDING_FAILED,
-        `Cannot pause voicenote: current state is ${this.state}`
+        `Cannot pause recording: current state is ${this.state}`
       );
     }
 
@@ -180,13 +180,13 @@ export class AudioRecorder {
   }
 
   /**
-   * Resume a paused voicenote
+   * Resume a paused recording
    */
   resume(): void {
     if (this.state !== RecorderState.PAUSED) {
-      throw new VoicenoteError(
+      throw new RecordingError(
         ErrorCode.RECORDING_FAILED,
-        `Cannot resume voicenote: current state is ${this.state}`
+        `Cannot resume recording: current state is ${this.state}`
       );
     }
 
@@ -196,14 +196,14 @@ export class AudioRecorder {
   }
 
   /**
-   * Stop voicenote and return the result
+   * Stop recording and return the result
    */
-  async stop(): Promise<VoicenoteResult> {
+  async stop(): Promise<RecordingResult> {
     return new Promise((resolve, reject) => {
       if (this.state === RecorderState.INACTIVE) {
-        reject(new VoicenoteError(
+        reject(new RecordingError(
           ErrorCode.RECORDING_FAILED,
-          'Cannot stop voicenote: no active voicenote'
+          'Cannot stop recording: no active recording'
         ));
         return;
       }
@@ -222,7 +222,7 @@ export class AudioRecorder {
           const blob = new Blob(this.chunks, { type: this.supportedMimeType });
           const format = this.extractFormatFromMimeType(this.supportedMimeType);
 
-          const result: VoicenoteResult = {
+          const result: RecordingResult = {
             blob,
             mimeType: this.supportedMimeType,
             duration,
@@ -235,7 +235,7 @@ export class AudioRecorder {
           resolve(result);
         } catch (error) {
           await this.cleanup();
-          reject(wrapUnknownError(error, { operation: 'stop voicenote' }));
+          reject(wrapUnknownError(error, { operation: 'stop recording' }));
         }
       };
 
@@ -246,7 +246,7 @@ export class AudioRecorder {
   }
 
   /**
-   * Cancel voicenote and cleanup without returning data
+   * Cancel recording and cleanup without returning data
    */
   async cancel(): Promise<void> {
     if (this.state === RecorderState.INACTIVE) return;
@@ -290,13 +290,13 @@ export class AudioRecorder {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
-          channelCount: 1 // Mono audio for voice voicenote
+          channelCount: 1 // Mono audio for voice recording
         }
       });
     } catch (error) {
       if (error instanceof Error) {
         if (error.name === 'NotAllowedError') {
-          throw new VoicenoteError(
+          throw new RecordingError(
             ErrorCode.MICROPHONE_ACCESS_DENIED,
             'Microphone access denied. Please allow microphone access and try again.',
             error
@@ -318,7 +318,7 @@ export class AudioRecorder {
     });
 
     this.mediaRecorder.addEventListener('error', (event) => {
-      const error = new VoicenoteError(
+      const error = new RecordingError(
         ErrorCode.RECORDING_FAILED,
         `MediaRecorder error: ${event.error?.message || 'Unknown error'}`,
         event.error || undefined
@@ -339,9 +339,9 @@ export class AudioRecorder {
       // Check duration limit
       if (duration >= this.config.maxDuration) {
         this.stop().catch(error => {
-          throw new VoicenoteError(
+          throw new RecordingError(
             ErrorCode.RECORDING_TOO_LONG,
-            `Voicenote stopped: maximum duration of ${this.config.maxDuration} seconds exceeded`,
+            `Recording stopped: maximum duration of ${this.config.maxDuration} seconds exceeded`,
             error as Error
           );
         });

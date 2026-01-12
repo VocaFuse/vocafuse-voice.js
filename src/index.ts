@@ -6,8 +6,8 @@ import { ConfigurationError } from './errors.js';
 export { VoiceRecorder } from './recorder-controller.js';
 export type { RecorderOptions, RecorderState } from './recorder-controller.js';
 export type { UploadResult } from './upload.js';
-export type { VoicenoteResult } from './recorder.js';
-export { ErrorCode, VocaFuseError, AuthenticationError, NetworkError, VoicenoteError, UploadError } from './errors.js';
+export type { RecordingResult } from './recorder.js';
+export { ErrorCode, VocaFuseError, AuthenticationError, NetworkError, RecordingError, UploadError } from './errors.js';
 
 export interface SDKConfig {
   tokenEndpoint: string;
@@ -19,7 +19,7 @@ export interface SDKConfig {
 
 export interface SDKInfo {
   version: string;
-  voicenoteSupported: boolean;
+  recordingSupported: boolean;
   tokenEndpoint: string;
   apiBaseUrl: string;
   identity: string;
@@ -88,20 +88,15 @@ export class VocaFuseSDK extends VocaFuseSDKBase {
     return new VoiceRecorder(this.httpClient, this.tokenManager, options);
   }
 
-  isVoicenoteSupported(): boolean {
+  isRecordingSupported(): boolean {
     return typeof MediaRecorder !== 'undefined' && 
            typeof navigator.mediaDevices?.getUserMedia === 'function';
-  }
-
-  // Alias for clarity
-  isRecordingSupported(): boolean {
-    return this.isVoicenoteSupported();
   }
 
   getInfo(): SDKInfo {
     return {
       version: VERSION,
-      voicenoteSupported: this.isVoicenoteSupported(),
+      recordingSupported: this.isRecordingSupported(),
       tokenEndpoint: this.config.tokenEndpoint,
       apiBaseUrl: this.config.apiBaseUrl,
       identity: 'managed_by_backend'

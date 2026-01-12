@@ -1,12 +1,13 @@
-import { AudioRecorder, type VoicenoteResult } from './recorder.js';
+import { AudioRecorder, type RecordingResult } from './recorder.js';
 import { VocaFuseUploader, type UploadResult } from './upload.js';
 import { HttpClient } from './client.js';
 import { TokenManager } from './token.js';
-import { ErrorCode, VoicenoteError } from './errors.js';
+import { ErrorCode, RecordingError } from './errors.js';
 
 export interface RecorderOptions {
   maxDuration?: number;
   autoUpload?: boolean; // default true
+  customTags?: Record<string, string>;
   onStateChange?: (state: RecorderState) => void;
   onRecordProgress?: (seconds: number) => void;
   onUploadProgress?: (percentage: number) => void;
@@ -22,7 +23,7 @@ export class VoiceRecorder {
   private uploader: VocaFuseUploader;
   private _state: RecorderState = 'idle';
   private _duration: number = 0;
-  private recordingResult: VoicenoteResult | null = null;
+  private recordingResult: RecordingResult | null = null;
 
   constructor(
     httpClient: HttpClient,
@@ -62,7 +63,7 @@ export class VoiceRecorder {
 
   async start(): Promise<void> {
     if (this._state !== 'idle') {
-      throw new VoicenoteError(
+      throw new RecordingError(
         ErrorCode.RECORDING_FAILED,
         `Cannot start recording from state: ${this._state}`
       );
@@ -71,9 +72,9 @@ export class VoiceRecorder {
     await this.audioRecorder.start();
   }
 
-  async stop(): Promise<UploadResult | VoicenoteResult> {
+  async stop(): Promise<UploadResult | RecordingResult> {
     if (this._state !== 'recording') {
-      throw new VoicenoteError(
+      throw new RecordingError(
         ErrorCode.RECORDING_FAILED,
         `Cannot stop recording from state: ${this._state}`
       );
@@ -86,7 +87,7 @@ export class VoiceRecorder {
     const autoUpload = this.options.autoUpload !== false; // default true
     if (autoUpload) {
       this.setState('uploading');
-      const result = await this.uploader.upload(this.recordingResult);
+      const result = await this.uploader.upload(this.recordingResult, { customTags: this.options.customTags });
       this.setState('uploaded');
       
       // Reset to idle state for next recording

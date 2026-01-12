@@ -4,7 +4,7 @@
 import { HttpClient } from './client.js';
 import { TokenManager } from './token.js';
 import { UploadError, NetworkError, wrapUnknownError } from './errors.js';
-import type { VoicenoteResult } from './recorder.js';
+import type { RecordingResult } from './recorder.js';
 
 export interface UploadConfig {
   onProgress?: (progress: number) => void; // deprecated alias
@@ -15,12 +15,21 @@ export interface UploadConfig {
   timeout?: number;
 }
 
+export interface UploadOptions {
+  /**
+   * Custom metadata for correlating a recording with your app context.
+   * Sent on /upload request and included in webhook payloads as recording.custom_tags.
+   */
+  customTags?: Record<string, string>;
+}
+
 export interface UploadRequest {
   file_name: string;
   file_size: number;
   audio_format: string;
   duration_seconds: number;
   use_multipart?: boolean;
+  custom_tags?: Record<string, string>;
   sdk_metadata: {
     duration_seconds: number;
     sample_rate?: number;
@@ -85,18 +94,18 @@ export class VocaFuseUploader {
     };
   }
 
-  async upload(voicenote: VoicenoteResult): Promise<UploadResult> {
+  async upload(recording: RecordingResult, options: UploadOptions = {}): Promise<UploadResult> {
     try {
       this.notifyProgress({ loaded: 0, total: 100, percentage: 0, phase: 'requesting' });
-      const uploadRequest = this.createUploadRequest(voicenote);
+      const uploadRequest = this.createUploadRequest(recording, options);
       const presignedResponse = await this.requestPresignedUrl(uploadRequest);
 
       this.notifyProgress({ loaded: 0, total: 100, percentage: 10, phase: 'uploading' });
 
       if (presignedResponse.upload_type === 'single') {
-        await this.uploadSingle(voicenote.blob, presignedResponse);
+        await this.uploadSingle(recording.blob, presignedResponse);
       } else {
-        await this.uploadMultipart(voicenote.blob, presignedResponse);
+        await this.uploadMultipart(recording.blob, presignedResponse);
       }
 
       this.notifyProgress({ loaded: 100, total: 100, percentage: 100, phase: 'completing' });
@@ -107,34 +116,35 @@ export class VocaFuseUploader {
         processing_strategy: presignedResponse.processing_strategy,
         client_processed: presignedResponse.client_processed,
         s3_key: presignedResponse.s3_key,
-        file_size: voicenote.size,
-        duration_seconds: voicenote.duration,
-        audio_format: voicenote.format
+        file_size: recording.size,
+        duration_seconds: recording.duration,
+        audio_format: recording.format
       };
 
       if (this.config.onComplete) this.config.onComplete(result);
       return result;
     } catch (error) {
-      const uploadError = error instanceof UploadError ? error : (wrapUnknownError(error, { operation: 'upload voicenote' }) as UploadError);
+      const uploadError = error instanceof UploadError ? error : (wrapUnknownError(error, { operation: 'upload recording' }) as UploadError);
       if (this.config.onError) this.config.onError(uploadError);
       throw uploadError;
     }
   }
 
-  private createUploadRequest(voicenote: VoicenoteResult): UploadRequest {
+  private createUploadRequest(recording: RecordingResult, options: UploadOptions): UploadRequest {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const extension = this.getFileExtension(voicenote.format);
-    const fileName = `voicenote-${timestamp}.${extension}`;
+    const extension = this.getFileExtension(recording.format);
+    const fileName = `recording-${timestamp}.${extension}`;
     return {
       file_name: fileName,
-      file_size: voicenote.size,
-      audio_format: voicenote.format,
-      duration_seconds: Math.round(voicenote.duration * 100) / 100,
-      use_multipart: voicenote.size > 5 * 1024 * 1024,
+      file_size: recording.size,
+      audio_format: recording.format,
+      duration_seconds: Math.round(recording.duration * 100) / 100,
+      use_multipart: recording.size > 5 * 1024 * 1024,
+      custom_tags: options.customTags,
       sdk_metadata: {
-        duration_seconds: Math.round(voicenote.duration * 100) / 100,
-        codec: voicenote.format,
-        file_size_bytes: voicenote.size,
+        duration_seconds: Math.round(recording.duration * 100) / 100,
+        codec: recording.format,
+        file_size_bytes: recording.size,
         sample_rate: 44100,
         channels: 1,
         bit_rate: 128000

@@ -29,7 +29,7 @@ export default function VoiceRecorder() {
     sdk.init().then(() => {
       setRecorder(sdk.createRecorder({
         maxDuration: 60,
-        onComplete: (result) => console.log('Uploaded:', result.voicenote_id),
+        onComplete: (result) => console.log('Uploaded:', result.recording_id),
         onError: (err) => console.error(err),
         onStateChange: () => setRecorder(r => ({ ...r })) // trigger re-render
       }))
@@ -65,12 +65,16 @@ await sdk.init()  // fetches initial token
 const recorder = sdk.createRecorder({
   maxDuration: 60,        // seconds (default: 60)
   autoUpload: true,       // upload on stop (default: true)
+  customTags: {           // optional: correlate this recording with app context
+    actionType: 'CreateReport',
+    jobId: 'job_123'
+  },
   
   // Callbacks
   onStateChange: (state) => {},      // 'idle' | 'recording' | 'uploading' | 'uploaded'
   onRecordProgress: (seconds) => {}, // fired every 100ms while recording
   onUploadProgress: (percent) => {}, // 0-100
-  onComplete: (result) => {},        // { voicenote_id, url, ... }
+  onComplete: (result) => {},        // { recording_id, ... }
   onError: (error) => {},
   onCancel: () => {}
 })
@@ -99,7 +103,7 @@ recorder.isUploading  // boolean
 **Microphone not working?**
 - Requires HTTPS (or localhost for development)
 - User must grant microphone permission
-- Check: `sdk.isVoicenoteSupported()` returns `true`
+- Check: `sdk.isRecordingSupported()` returns `true`
 
 **Upload failing?**
 - Verify your `/api/token` endpoint returns valid VocaFuse tokens

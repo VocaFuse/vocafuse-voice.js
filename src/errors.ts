@@ -2,7 +2,7 @@
  * VocaFuse SDK Error Types
  * 
  * Extensible error framework for handling different types of failures
- * in the voice voicenote and upload process.
+ * in the voice recording and upload process.
  */
 
 export enum ErrorCode {
@@ -16,7 +16,7 @@ export enum ErrorCode {
   REQUEST_TIMEOUT = 'REQUEST_TIMEOUT',
   REQUEST_FAILED = 'REQUEST_FAILED',
   
-  // Voicenote errors
+  // Recording errors
   MICROPHONE_ACCESS_DENIED = 'MICROPHONE_ACCESS_DENIED',
   RECORDING_NOT_SUPPORTED = 'RECORDING_NOT_SUPPORTED',
   RECORDING_FAILED = 'RECORDING_FAILED',
@@ -75,7 +75,7 @@ export class VocaFuseError extends Error {
       case ErrorCode.MICROPHONE_ACCESS_DENIED:
         return 'Please allow microphone access to record audio.';
       case ErrorCode.RECORDING_NOT_SUPPORTED:
-        return 'Audio voicenote is not supported in this browser.';
+        return 'Audio recording is not supported in this browser.';
       case ErrorCode.NETWORK_ERROR:
         return 'Network connection failed. Please check your internet connection.';
       case ErrorCode.TOKEN_EXPIRED:
@@ -83,7 +83,7 @@ export class VocaFuseError extends Error {
       case ErrorCode.FILE_TOO_LARGE:
         return 'The audio file is too large to upload.';
       case ErrorCode.RECORDING_TOO_LONG:
-        return 'Voicenote is too long. Maximum duration is 60 seconds.';
+        return 'Recording is too long. Maximum duration is 60 seconds.';
       default:
         return 'An unexpected error occurred. Please try again.';
     }
@@ -145,9 +145,9 @@ export class NetworkError extends VocaFuseError {
 }
 
 /**
- * Voicenote-specific error
+ * Recording-specific error
  */
-export class VoicenoteError extends VocaFuseError {
+export class RecordingError extends VocaFuseError {
   constructor(code: ErrorCode, message: string, originalError?: Error, context?: Record<string, unknown>) {
     super({
       code,
@@ -156,7 +156,7 @@ export class VoicenoteError extends VocaFuseError {
       context,
       retryable: false
     });
-    this.name = 'VoicenoteError';
+    this.name = 'RecordingError';
   }
 }
 
